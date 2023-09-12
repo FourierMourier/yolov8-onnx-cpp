@@ -1,0 +1,35 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
+project(YOLOv8CPP)
+
+# thanks to original source
+#   https://github.com/UNeedCryDear/yolov8-opencv-onnxruntime-cpp/blob/main/CMakeLists.txt
+
+SET (OpenCV_DIR your/path/to/opencv/build/x64/vc16/lib)  # opencv root
+SET (ONNXRUNTIME_DIR your/path/to/onnxruntime-win-x64-1.15.1)  # onnxruntime root
+
+FIND_PACKAGE(OpenCV REQUIRED)
+
+include_directories(include)  # Include your header files directory
+
+# Recursively collect all source files under 'src' directory
+file(GLOB_RECURSE CURR_SOURCES src/*.cpp)
+
+# Create the executable
+add_executable(YOLOv8CPP ${CURR_SOURCES})
+
+SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+TARGET_INCLUDE_DIRECTORIES(YOLOv8CPP PRIVATE "${ONNXRUNTIME_DIR}/include")
+
+target_compile_features(YOLOv8CPP PRIVATE cxx_std_17)
+
+TARGET_LINK_LIBRARIES(YOLOv8CPP ${OpenCV_LIBS})
+
+if (WIN32)
+    TARGET_LINK_LIBRARIES(YOLOv8CPP "${ONNXRUNTIME_DIR}/lib/onnxruntime.lib")
+endif(WIN32)
+
+if (UNIX)
+    TARGET_LINK_LIBRARIES(YOLOv8CPP "${ONNXRUNTIME_DIR}/lib/libonnxruntime.so")
+endif(UNIX)

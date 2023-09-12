@@ -98,9 +98,53 @@ To get started with yolov8-onnx-cpp, follow these steps:
     git clone https://github.com/FourierMourier/yolov8-onnx-cpp.git
     ```
 2. Setup additional libraries:
-* [opencv](https://opencv.org/releases/) (4.80+)
+
+Download [opencv here](https://opencv.org/releases/) (4.80+)
+
+### Solution-like build
 * onnxruntime (1.50+) (nuget package)
-* boost (1.80+) (nuget package)
+
+### Cmake in non-visual studio-like ide
+Copy `CMakeLists.example.txt` as `CMakeLists.txt` (git-ignored) and edit the following lines:
+```cmake
+SET (OpenCV_DIR your/path/to/opencv/build/x64/vc16/lib)  # opencv root
+SET (ONNXRUNTIME_DIR your/path/to/onnxruntime-win-x64-1.15.1)  # onnxruntime root
+```
+
+Even though you'll find only a nuget package on the [official page](https://onnxruntime.ai/docs/install/#cccwinml-installs)
+you can still download release for cmake file here for your platform:
+https://github.com/microsoft/onnxruntime/releases
+
+If you're working in different IDE like Clion rather than visual studio you still have to do the following:
+
+* Install Visual Studio: If you haven't already, consider installing Visual Studio on your Windows system.
+   You can download the Visual Studio Community edition for free from the official Microsoft website.
+   Ensure that you select the components necessary for C++ development. 
+* Configure CLion to Use Visual Studio: Open CLion, go to "File" > "Settings" > "Build, Execution, Deployment" > 
+  "Toolchains." In the "Environment" section, select the Visual Studio toolchain that you installed.
+  Make sure it points to the correct Visual Studio installation directory.
+
+* CMake Configuration: Ensure that your CMake configuration in CLion specifies the Visual Studio generator 
+  (e.g., "Visual Studio 2022").
+  This can be set in "File" > "Settings" > "Build, Execution, Deployment" > "CMake" ( > "CMake options.")
+  ![clion_screen](assets/clion_screen.png)
+
+So the issues like 
+* https://github.com/microsoft/onnxruntime/issues/1175
+* https://github.com/microsoft/onnxruntime/issues/9332
+* https://github.com/microsoft/onnxruntime/issues/11545
+will be gone
+
+The issue like `"The given version [15] is not supported, only version 1 to 10 is supported in this build="`
+https://github.com/microsoft/onnxruntime/issues/11230
+
+is a bit tricky: you have to manually copy onnxruntime.dll into 
+./cmake-build-debug-visual-studio/Debug (or configure that via cmake)
+
+Opencv dll should also be placed nearly .exe file so it also goes into
+./cmake-build-debug-visual-studio/Debug/opencv_world480d.dll
+
+Hope that helps!
 
 3. edit in the ./src/main.cpp img_path/&modelPath:
     ```cpp

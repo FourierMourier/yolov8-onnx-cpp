@@ -1,10 +1,11 @@
 ﻿#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 #include <string>
+#include <sstream>
 #include <codecvt>
 #include "utils/common.h"
 
 #include <chrono>
-#include <boost/algorithm/string.hpp>
+//#include <boost/algorithm/string.hpp>
 
 #include <iostream>
 #include <stdio.h>
@@ -89,6 +90,7 @@ std::vector<int> convertStringVectorToInts(const std::vector<std::string>& input
 }
 
 
+/*
 std::unordered_map<int, std::string> parseNames(const std::string& input) {
     std::unordered_map<int, std::string> result;
 
@@ -107,6 +109,28 @@ std::unordered_map<int, std::string> parseNames(const std::string& input) {
             int key = std::stoi(boost::trim_copy(keyValue[0]));
             std::string value = boost::trim_copy(keyValue[1]);
 
+            result[key] = value;
+        }
+    }
+
+    return result;
+}
+*/
+
+std::unordered_map<int, std::string> parseNames(const std::string& input) {
+    std::unordered_map<int, std::string> result;
+
+    std::string cleanedInput = input;
+    cleanedInput.erase(std::remove(cleanedInput.begin(), cleanedInput.end(), '{'), cleanedInput.end());
+    cleanedInput.erase(std::remove(cleanedInput.begin(), cleanedInput.end(), '}'), cleanedInput.end());
+
+    std::istringstream elementStream(cleanedInput);
+    std::string element;
+    while (std::getline(elementStream, element, ',')) {
+        std::istringstream keyValueStream(element);
+        std::string keyStr, value;
+        if (std::getline(keyValueStream, keyStr, ':') && std::getline(keyValueStream, value)) {
+            int key = std::stoi(keyStr);
             result[key] = value;
         }
     }
