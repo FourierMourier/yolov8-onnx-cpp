@@ -1,0 +1,13 @@
+# ide related
+.vs/*
+.idea/*
+# build
+.build/*
+x64/*
+# dlls:
+*.dll
+# vs-like objects
+*.sln
+*vcxproj*
+packages.config
+packages/*
