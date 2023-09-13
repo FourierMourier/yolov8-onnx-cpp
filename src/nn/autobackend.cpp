@@ -359,7 +359,15 @@ void AutoBackendOnnx::postprocess_masks(cv::Mat& output0, cv::Mat& output1, Imag
         int idx = nms_result[i];
         boxes[idx] = boxes[idx] & cv::Rect(0, 0, image_info.raw_size.width, image_info.raw_size.height);
         YoloResults result = { class_ids[idx] ,confidences[idx] ,boxes[idx] };
-        _get_mask2(cv::Mat(masks[idx]).t(), output1, image_info, boxes[idx], result.mask, mask_threshold,
+
+        // select all of the protos tensor
+        cv::Size downsampled_size = cv::Size(mw, mh);
+        std::vector<cv::Range> roi_rangs = { cv::Range(0, 1), cv::Range::all(),
+                                             cv::Range(0, downsampled_size.height), cv::Range(0, downsampled_size.width) };
+        cv::Mat temp_mask = output1(roi_rangs).clone();
+        cv::Mat proto = temp_mask.reshape(0, { masks_features_num, downsampled_size.width * downsampled_size.height });
+
+        _get_mask2(cv::Mat(masks[idx]).t(), proto, image_info, boxes[idx], result.mask, mask_threshold,
             iw, ih, mw, mh, masks_features_num);
         output.push_back(result);
     }
@@ -416,7 +424,9 @@ void AutoBackendOnnx::postprocess_detects(cv::Mat& output0, ImageInfo image_info
     }
 }
 
-void AutoBackendOnnx::_get_mask2(const cv::Mat& masks_features, const cv::Mat& mask_data,
+void AutoBackendOnnx::_get_mask2(const cv::Mat& masks_features,
+    //                                 const cv::Mat& mask_data,
+    const cv::Mat& proto,
     const ImageInfo& image_info, const cv::Rect bound, cv::Mat& mask_out,
     float& mask_thresh, int& iw, int& ih, int& mw, int& mh, int& masks_features_num, bool round_downsampled,
     bool adjust_with_padding)
@@ -425,7 +435,7 @@ void AutoBackendOnnx::_get_mask2(const cv::Mat& masks_features, const cv::Mat& m
     cv::Size img0_shape = image_info.raw_size;
     cv::Size img1_shape = cv::Size(iw, ih);
     cv::Size downsampled_size = cv::Size(mw, mh);
-    cv::Size bbox_size = cv::Size(bound.width, bound.height);
+//    cv::Size bbox_size = cv::Size(bound.width, bound.height);
 
     cv::Rect_<float> bound_float(
         static_cast<float>(bound.x),
@@ -459,10 +469,10 @@ void AutoBackendOnnx::_get_mask2(const cv::Mat& masks_features, const cv::Mat& m
         );
     }
     // select all of the protos tensor
-    std::vector<cv::Range> roi_rangs = { cv::Range(0, 1), cv::Range::all(),
-        cv::Range(0, downsampled_size.height), cv::Range(0, downsampled_size.width) };
-    cv::Mat temp_mask = mask_data(roi_rangs).clone();
-    cv::Mat proto = temp_mask.reshape(0, { masks_features_num, downsampled_size.width * downsampled_size.height });
+//    std::vector<cv::Range> roi_rangs = { cv::Range(0, 1), cv::Range::all(),
+//        cv::Range(0, downsampled_size.height), cv::Range(0, downsampled_size.width) };
+//    cv::Mat temp_mask = mask_data(roi_rangs).clone();
+//    cv::Mat proto = temp_mask.reshape(0, { masks_features_num, downsampled_size.width * downsampled_size.height });
     // perform mm between mask features and proto
     cv::Mat matmul_res = (masks_features * proto).t();
     matmul_res = matmul_res.reshape(1, { downsampled_size.height, downsampled_size.width });
@@ -477,7 +487,9 @@ void AutoBackendOnnx::_get_mask2(const cv::Mat& masks_features, const cv::Mat& m
     cv::Rect_<float> input_bbox = scale_boxes(img0_shape, bound_float, img1_shape);
     cv::resize(sigmoid_mask, resized_mask, img1_shape); // , 0, 0, cv::INTER_LINEAR);
     cv::Mat pre_out_mask = resized_mask(input_bbox);
-    cv::Mat scaled_mask = scale_image(resized_mask, img0_shape);
+//    cv::Mat scaled_mask = scale_image(resized_mask, img0_shape);
+    cv::Mat scaled_mask;
+    scale_image2(scaled_mask, resized_mask, img0_shape);
     cv::resize(scaled_mask, mask_out, img0_shape);
     mask_out = mask_out(bound) > mask_thresh;
 }

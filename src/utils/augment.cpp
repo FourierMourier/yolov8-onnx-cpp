@@ -108,3 +108,38 @@ cv::Mat scale_image(const cv::Mat& resized_mask, const cv::Size& im0_shape, cons
 
     return scaled_mask;
 }
+
+
+void scale_image2(cv::Mat& scaled_mask, const cv::Mat& resized_mask, const cv::Size& im0_shape, const std::pair<float, cv::Point2f>& ratio_pad) {
+    cv::Size im1_shape = resized_mask.size();
+
+    // Check if resizing is needed
+    if (im1_shape == im0_shape) {
+        scaled_mask = resized_mask.clone();
+        return;
+    }
+
+    float gain, pad_x, pad_y;
+
+    if (ratio_pad.first < 0.0f) {
+        gain = std::min(static_cast<float>(im1_shape.height) / static_cast<float>(im0_shape.height),
+                        static_cast<float>(im1_shape.width) / static_cast<float>(im0_shape.width));
+        pad_x = (im1_shape.width - im0_shape.width * gain) / 2.0f;
+        pad_y = (im1_shape.height - im0_shape.height * gain) / 2.0f;
+    }
+    else {
+        gain = ratio_pad.first;
+        pad_x = ratio_pad.second.x;
+        pad_y = ratio_pad.second.y;
+    }
+
+    int top = static_cast<int>(pad_y);
+    int left = static_cast<int>(pad_x);
+    int bottom = static_cast<int>(im1_shape.height - pad_y);
+    int right = static_cast<int>(im1_shape.width - pad_x);
+
+    // Clip and resize the mask
+    cv::Rect clipped_rect(left, top, right - left, bottom - top);
+    cv::Mat clipped_mask = resized_mask(clipped_rect);
+    cv::resize(clipped_mask, scaled_mask, im0_shape);
+}
