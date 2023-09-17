@@ -23,4 +23,22 @@ void clip_boxes(cv::Rect& box, const cv::Size& shape);
 void clip_boxes(cv::Rect_<float>& box, const cv::Size& shape);
 void clip_boxes(std::vector<cv::Rect>& boxes, const cv::Size& shape);
 void clip_boxes(std::vector<cv::Rect_<float>>& boxes, const cv::Size& shape);
+
+//void clip_coords(cv::Mat& coords, const cv::Size& shape);
+//cv::Mat scale_coords(const cv::Size& img1_shape, cv::Mat& coords, const cv::Size& img0_shape);
+void clip_coords(std::vector<float>& coords, const cv::Size& shape);
+std::vector<float> scale_coords(const cv::Size& img1_shape, std::vector<float>& coords, const cv::Size& img0_shape);
+
 cv::Mat crop_mask(const cv::Mat& mask, const cv::Rect& box);
+
+
+struct NMSResult{
+    std::vector<cv::Rect> bboxes;
+    std::vector<float> confidences;
+    std::vector<int> classes;
+    std::vector<std::vector<float>> rest;
+};
+
+//std::tuple<std::vector<cv::Rect_<float>>, std::vector<float>, std::vector<int>, std::vector<std::vector<float>>>
+std::tuple<std::vector<cv::Rect>, std::vector<float>, std::vector<int>, std::vector<std::vector<float>>>
+non_max_suppression(const cv::Mat& output0, int class_names_num, int total_features_num, double conf_threshold, float iou_threshold);

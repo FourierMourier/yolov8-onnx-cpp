@@ -36,8 +36,8 @@ We can use this parameters at least to define stride, task, names and image size
 |------------|-----------|
 | Detect     | ✔️        |
 | Segment    | ✔️        |
+| Pose       | ✔️        |
 | Classify   |           |
-| Pose       |           |
 
 
 | Hardware   | Supported |
@@ -48,12 +48,22 @@ We can use this parameters at least to define stride, task, names and image size
 
 ## Comparison between Python and C++
 
-I exported `yolov8n.pt` and `yolov8n-seg.pt` to ONNX format with an input size of [480, 640] ([height, width]). However, 
-during testing, I used 2 images from the COCO128 dataset with different image sizes than the specified input. 
+I exported `yolov8n.pt`, `yolov8n-seg.pt`, `yolov8n-pose.pt` to ONNX format with an input size of [480, 640] ([height, width]).
+For the test I used some images from the COCO128 dataset with different image sizes than the specified input. 
 This difference in sizes triggered letterboxing. I maintained consistent parameters, 
-setting `conf=0.3` and `iou=0.5` for both models.
+setting `conf=0.3` and `iou=0.5` for all models.
 
 Here are the comparison results:
+
+
+### Pose
+Python Result
+
+![Python Result](assets/000000000382-kpt-py.jpg)
+
+C++ Result
+
+![C++ Result](assets/000000000382-kpt-cpp.jpg)
 
 ### Segmentation
 Python Result 1

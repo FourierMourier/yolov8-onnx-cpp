@@ -184,7 +184,7 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(const fs::path& imagePath
     if (!fs::exists(imagePath)) {
         std::cerr << "Error: File does not exist: " << imagePath << std::endl;
         // Return an empty vector or throw an exception, depending on your logic
-        return std::vector<YoloResults>();
+        return {};
     }
 
     // Load the image into a cv::Mat
@@ -194,7 +194,7 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(const fs::path& imagePath
     if (image.empty()) {
         std::cerr << "Error: Failed to load image: " << imagePath << std::endl;
         // Return an empty vector or throw an exception, depending on your logic
-        return std::vector<YoloResults>();
+        return {};
     }
 
     // now do some preprocessing based on channels info:
@@ -211,13 +211,6 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(const fs::path& imagePath
     return predict_once(image, conf, iou, mask_threshold, conversionCode);
 }
 
-
-// predict method should be similar to what we have in python - image (or it's existing path), conf, iou etc
-//  additionally, we can put here mask_threshold (
-//      in python after the sigmoid is applied to matrix
-//      product between features mask and protos the threshold is gt_(0.5)
-//      as masks.gt_(0.5) in ultralytics/utils/ops.process_mask
-// )
 
 std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image, float& conf, float& iou, float& mask_threshold, int conversionCode, bool verbose) {
     double preprocess_time = 0.0;
@@ -289,6 +282,13 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image, float& co
         cv::Mat output0 = cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]), CV_32F, all_data0).t();  // [bs, features, preds_num]=>[bs, preds_num, features]
         postprocess_detects(output0, img_info, results, class_names_num, conf, iou);
     }
+    else if (task_ == YoloTasks::POSE) {
+        ImageInfo image_info = { image.size() };
+        std::vector<int64_t> outputTensor0Shape = outputTensors[0].GetTensorTypeAndShapeInfo().GetShape();
+        float* all_data0 = outputTensors[0].GetTensorMutableData<float>();
+        cv::Mat output0 = cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]), CV_32F, all_data0).t();  // [bs, features, preds_num]=>[bs, preds_num, features]
+        postprocess_kpts(output0, image_info, results, class_names_num, conf, iou);
+    }
     else {
         throw std::runtime_error("NotImplementedError: task: " + task_);
     }
@@ -321,16 +321,12 @@ void AutoBackendOnnx::postprocess_masks(cv::Mat& output0, cv::Mat& output1, Imag
     int data_width = class_names_num + 4 + masks_features_num;
     int rows = output0.rows;
     float* pdata = (float*)output0.data;
-    // for loop original source: https://github.com/winxos/yolov8_segment_onnx_in_cpp/blob/ab6a1db14faa932cf9ac2dbef031f9b50c658ac5/onnxcpp/main.cpp
     for (int r = 0; r < rows; ++r)
     {
         cv::Mat scores(1, class_names_num, CV_32FC1, pdata + 4);
         cv::Point class_id;
         double max_conf;
         minMaxLoc(scores, 0, &max_conf, 0, &class_id);
-        // ultralytics/utils/ops.non_max_suppression line 206: 
-        //     xc = prediction[:, 4:mi].amax(1) > conf_thres  # candidates
-        // so there's must be strict condition
         if (max_conf > conf_threshold)
         {
             masks.push_back(std::vector<float>(pdata + 4 + class_names_num, pdata + data_width));
@@ -354,19 +350,19 @@ void AutoBackendOnnx::postprocess_masks(cv::Mat& output0, cv::Mat& output1, Imag
     //const float& nmsde_eta = 1.0f;
     std::vector<int> nms_result;
     cv::dnn::NMSBoxes(boxes, confidences, conf_threshold, iou_threshold, nms_result); // , nms_eta, top_k);
+
+    // select all of the protos tensor
+    cv::Size downsampled_size = cv::Size(mw, mh);
+    std::vector<cv::Range> roi_rangs = { cv::Range(0, 1), cv::Range::all(),
+                                         cv::Range(0, downsampled_size.height), cv::Range(0, downsampled_size.width) };
+    cv::Mat temp_mask = output1(roi_rangs).clone();
+    cv::Mat proto = temp_mask.reshape(0, { masks_features_num, downsampled_size.width * downsampled_size.height });
+
     for (int i = 0; i < nms_result.size(); ++i)
     {
         int idx = nms_result[i];
         boxes[idx] = boxes[idx] & cv::Rect(0, 0, image_info.raw_size.width, image_info.raw_size.height);
         YoloResults result = { class_ids[idx] ,confidences[idx] ,boxes[idx] };
-
-        // select all of the protos tensor
-        cv::Size downsampled_size = cv::Size(mw, mh);
-        std::vector<cv::Range> roi_rangs = { cv::Range(0, 1), cv::Range::all(),
-                                             cv::Range(0, downsampled_size.height), cv::Range(0, downsampled_size.width) };
-        cv::Mat temp_mask = output1(roi_rangs).clone();
-        cv::Mat proto = temp_mask.reshape(0, { masks_features_num, downsampled_size.width * downsampled_size.height });
-
         _get_mask2(cv::Mat(masks[idx]).t(), proto, image_info, boxes[idx], result.mask, mask_threshold,
             iw, ih, mw, mh, masks_features_num);
         output.push_back(result);
@@ -392,20 +388,20 @@ void AutoBackendOnnx::postprocess_detects(cv::Mat& output0, ImageInfo image_info
         cv::Mat scores(1, class_names_num, CV_32FC1, pdata + 4);
         cv::Point class_id;
         double max_conf;
-        minMaxLoc(scores, 0, &max_conf, 0, &class_id);
+        minMaxLoc(scores, nullptr, &max_conf, nullptr, &class_id);
 
         if (max_conf > conf_threshold)
         {
-            masks.push_back(std::vector<float>(pdata + 4 + class_names_num, pdata + data_width));
+            masks.emplace_back(pdata + 4 + class_names_num, pdata + data_width);
             class_ids.push_back(class_id.x);
-            confidences.push_back(max_conf);
+            confidences.push_back((float) max_conf);
 
             float out_w = pdata[2];
             float out_h = pdata[3];
             float out_left = MAX((pdata[0] - 0.5 * out_w + 0.5), 0);
             float out_top = MAX((pdata[1] - 0.5 * out_h + 0.5), 0);
 
-            cv::Rect_ <float> bbox = cv::Rect(out_left, out_top, (out_w + 0.5), (out_h + 0.5));
+            cv::Rect_ <float> bbox = cv::Rect_ <float> (out_left, out_top, (out_w + 0.5), (out_h + 0.5));
             cv::Rect_<float> scaled_bbox = scale_boxes(getCvSize(), bbox, image_info.raw_size);
 
             boxes.push_back(scaled_bbox);
@@ -415,27 +411,59 @@ void AutoBackendOnnx::postprocess_detects(cv::Mat& output0, ImageInfo image_info
 
     std::vector<int> nms_result;
     cv::dnn::NMSBoxes(boxes, confidences, conf_threshold, iou_threshold, nms_result); // , nms_eta, top_k);
-    for (int i = 0; i < nms_result.size(); ++i)
+    for (int idx : nms_result)
     {
-        int idx = nms_result[i];
         boxes[idx] = boxes[idx] & cv::Rect(0, 0, image_info.raw_size.width, image_info.raw_size.height);
         YoloResults result = { class_ids[idx] ,confidences[idx] ,boxes[idx] };
         output.push_back(result);
     }
 }
 
+void AutoBackendOnnx::postprocess_kpts(cv::Mat& output0, ImageInfo& image_info, std::vector<YoloResults>& output,
+                                          int& class_names_num, float& conf_threshold, float& iou_threshold)
+{
+    std::vector<cv::Rect> boxes;
+    std::vector<float> confidences;
+    std::vector<int> class_ids;
+    std::vector<std::vector<float>> rest;
+    std::tie(boxes, confidences, class_ids, rest) = non_max_suppression(output0, class_names_num, output0.cols, conf_threshold, iou_threshold);
+    cv::Size img1_shape = getCvSize();
+    auto bound_bbox = cv::Rect_ <float> (0, 0, image_info.raw_size.width, image_info.raw_size.height);
+    for (int i = 0; i < boxes.size(); i++) {
+        //             pred[:, :4] = ops.scale_boxes(img.shape[2:], pred[:, :4], shape).round()
+        //            pred_kpts = pred[:, 6:].view(len(pred), *self.model.kpt_shape) if len(pred) else pred[:, 6:]
+        //            pred_kpts = ops.scale_coords(img.shape[2:], pred_kpts, shape)
+        //            path = self.batch[0]
+        //            img_path = path[i] if isinstance(path, list) else path
+        //            results.append(
+        //                Results(orig_img=orig_img,
+        //                        path=img_path,
+        //                        names=self.model.names,
+        //                        boxes=pred[:, :6],
+        //                        keypoints=pred_kpts))
+        cv::Rect_<float> bbox = boxes[i];
+        auto scaled_bbox = scale_boxes(img1_shape, bbox, image_info.raw_size);
+        scaled_bbox = scaled_bbox & bound_bbox;
+//        cv::Mat kpt = cv::Mat(rest[i]).t();
+//        scale_coords(img1_shape, kpt, image_info.raw_size);
+        // TODO: overload scale_coords so that will accept cv::Mat of shape [17, 3]
+        //      so that it will be more similar to what we have in python
+        std::vector<float> kpt = scale_coords(img1_shape, rest[i], image_info.raw_size);
+        YoloResults tmp_res = { class_ids[i], confidences[i], scaled_bbox, {}, kpt};
+        output.push_back(tmp_res);
+    }
+}
+
 void AutoBackendOnnx::_get_mask2(const cv::Mat& masks_features,
-    //                                 const cv::Mat& mask_data,
     const cv::Mat& proto,
     const ImageInfo& image_info, const cv::Rect bound, cv::Mat& mask_out,
-    float& mask_thresh, int& iw, int& ih, int& mw, int& mh, int& masks_features_num, bool round_downsampled,
-    bool adjust_with_padding)
+    float& mask_thresh, int& iw, int& ih, int& mw, int& mh, int& masks_features_num,
+    bool round_downsampled)
 
 {
     cv::Size img0_shape = image_info.raw_size;
     cv::Size img1_shape = cv::Size(iw, ih);
     cv::Size downsampled_size = cv::Size(mw, mh);
-//    cv::Size bbox_size = cv::Size(bound.width, bound.height);
 
     cv::Rect_<float> bound_float(
         static_cast<float>(bound.x),
@@ -448,46 +476,16 @@ void AutoBackendOnnx::_get_mask2(const cv::Mat& masks_features,
     cv::Size bound_size = cv::Size(mw, mh);
     clip_boxes(downsampled_bbox, bound_size);
 
-    // TODO: make round vs strict casting optional parameter since it may affect results (!)
-    cv::Rect downsampled_bbox_int;
-    if (round_downsampled)
-    {
-        cv::Rect downsampled_bbox_int(
-            cvRound(downsampled_bbox.x),
-            cvRound(downsampled_bbox.y),
-            cvRound(downsampled_bbox.width),
-            cvRound(downsampled_bbox.height)
-        );
-    }
-    else
-    {
-        cv::Rect downsampled_bbox_int(
-            static_cast<int>(downsampled_bbox.x),
-            static_cast<int>(downsampled_bbox.y),
-            static_cast<int>(downsampled_bbox.width),
-            static_cast<int>(downsampled_bbox.height)
-        );
-    }
-    // select all of the protos tensor
-//    std::vector<cv::Range> roi_rangs = { cv::Range(0, 1), cv::Range::all(),
-//        cv::Range(0, downsampled_size.height), cv::Range(0, downsampled_size.width) };
-//    cv::Mat temp_mask = mask_data(roi_rangs).clone();
-//    cv::Mat proto = temp_mask.reshape(0, { masks_features_num, downsampled_size.width * downsampled_size.height });
-    // perform mm between mask features and proto
     cv::Mat matmul_res = (masks_features * proto).t();
     matmul_res = matmul_res.reshape(1, { downsampled_size.height, downsampled_size.width });
     // apply sigmoid to the mask:
     cv::Mat sigmoid_mask;
     exp(-matmul_res, sigmoid_mask);
     sigmoid_mask = 1.0 / (1.0 + sigmoid_mask);
-    //cv::resize(resized_mask_as_input, resized_mask, upsample_size); // , 0, 0, cv::INTER_LINEAR);
-    // somehow interpolating directly from sigmoid_mask(downsampled_bbox) into original size results in less accurate mask
-    //  so first create resized mask which will be the one as the input_image size and is almost identical to what we have in python
     cv::Mat resized_mask;
     cv::Rect_<float> input_bbox = scale_boxes(img0_shape, bound_float, img1_shape);
-    cv::resize(sigmoid_mask, resized_mask, img1_shape); // , 0, 0, cv::INTER_LINEAR);
+    cv::resize(sigmoid_mask, resized_mask, img1_shape, 0, 0, cv::INTER_LANCZOS4);
     cv::Mat pre_out_mask = resized_mask(input_bbox);
-//    cv::Mat scaled_mask = scale_image(resized_mask, img0_shape);
     cv::Mat scaled_mask;
     scale_image2(scaled_mask, resized_mask, img0_shape);
     cv::resize(scaled_mask, mask_out, img0_shape);

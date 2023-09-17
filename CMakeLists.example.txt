@@ -30,6 +30,20 @@ TARGET_LINK_LIBRARIES(YOLOv8CPP ${OpenCV_LIBS})
 
 if (WIN32)
     TARGET_LINK_LIBRARIES(YOLOv8CPP "${ONNXRUNTIME_DIR}/lib/onnxruntime.lib")
+    # some changes to the original version:
+    #   copy onnxruntime dll
+    add_custom_command(TARGET YOLOv8CPP POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${ONNXRUNTIME_DIR}/bin/onnxruntime.dll"
+        "$<TARGET_FILE_DIR:YOLOv8CPP>"
+    )
+    #   copy opencv
+    add_custom_command(TARGET YOLOv8CPP POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${OpenCV_DIR}/opencv_world480d.dll"
+        "$<TARGET_FILE_DIR:YOLOv8CPP>"
+    )
+
 endif(WIN32)
 
 if (UNIX)
