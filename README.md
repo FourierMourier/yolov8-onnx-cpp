@@ -117,8 +117,15 @@ Download [opencv here](https://opencv.org/releases/) (4.80+)
 ### Cmake in non-visual studio-like ide
 Copy `CMakeLists.example.txt` as `CMakeLists.txt` (git-ignored) and edit the following lines:
 ```cmake
-SET (OpenCV_DIR your/path/to/opencv/build/x64/vc16/lib)  # opencv root
+
+SET (OpenCV_DIR your/path/to/opencv/build/x64/vc16/lib)  # opencv lib root
+SET (OpenCV_BIN_DIR your/path/to/opencv/build/x64/vc16/bin)  #opencv bin root
+
+SET (OpenCV_DEBUG_DLL_FILENAME opencv_world480d.dll)  # change filenames
+SET (OpenCV_RELEASE_DLL_FILENAME opencv_world480.dll)  # change filenames
+
 SET (ONNXRUNTIME_DIR your/path/to/onnxruntime-win-x64-1.15.1)  # onnxruntime root
+
 ```
 
 Even though you'll find only a nuget package on the [official page](https://onnxruntime.ai/docs/install/#cccwinml-installs)
@@ -148,11 +155,7 @@ will be gone
 The issue like `"The given version [15] is not supported, only version 1 to 10 is supported in this build="`
 https://github.com/microsoft/onnxruntime/issues/11230
 
-is a bit tricky: you have to manually copy onnxruntime.dll into 
-./cmake-build-debug-visual-studio/Debug (or configure that via cmake)
-
-Opencv dll should also be placed nearly .exe file so it also goes into
-./cmake-build-debug-visual-studio/Debug/opencv_world480d.dll
+also should not occur since you configure dll in cmake 
 
 Hope that helps!
 
