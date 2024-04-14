@@ -1,16 +1,14 @@
 #include "yolov8_onnxruntime/nn/onnx_model_base.h"
 
 #include <iostream>
-#include <onnxruntime/core/session/onnxruntime_c_api.h>
-#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#include <onnxruntime_c_api.h>
+#include <onnxruntime_cxx_api.h>
 
 #include "yolov8_onnxruntime/constants.h"
 #include "yolov8_onnxruntime/utils/common.h"
 
 #include <algorithm>
 #include <thread>
-
-#include <ros/console.h>
 
 namespace yolov8_onnxruntime
 {
@@ -61,14 +59,12 @@ OnnxModelBase::OnnxModelBase(const char* modelPath,
     // (providerStr == "cuda")
     if (cudaAvailable == availableProviders.end())
     {
-      // std::cout << "CUDA is not supported by your ONNXRuntime build. Fallback to CPU." <<
-      // std::endl;
-      ROS_WARN_STREAM("CUDA is not supported by your ONNXRuntime build. Fallback to CPU.");
-      // std::cout << "Inference device: CPU" << std::endl;
+      std::cout << "CUDA is not supported by your ONNXRuntime build. Fallback to CPU." << std::endl;
+      std::cout << "Inference device: CPU" << std::endl;
     }
     else
     {
-      // std::cout << "Inference device: GPU" << std::endl;
+      std::cout << "Inference device: Cuda GPU" << std::endl;
       sessionOptions.AppendExecutionProvider_CUDA(cudaOption);
     }
   }
@@ -77,10 +73,9 @@ OnnxModelBase::OnnxModelBase(const char* modelPath,
   {
     if (openvinoAvailable == availableProviders.end())
     {
-      // std::cout << "OpenVINO is not supported by your ONNXRuntime build. Fallback to CPU." <<
-      // std::endl;
-      ROS_WARN_STREAM("OpenVINO is not supported by your ONNXRuntime build. Fallback to CPU.");
-      // std::cout << "Inference device: CPU" << std::endl;
+      std::cout << "OpenVINO is not supported by your ONNXRuntime build. Fallback to CPU."
+                << std::endl;
+      std::cout << "Inference device: CPU" << std::endl;
     }
     else
     {
@@ -99,8 +94,7 @@ OnnxModelBase::OnnxModelBase(const char* modelPath,
     throw std::runtime_error("Provider not supported (you should never see this message)");
   }
 
-  // std::cout << "Inference device: " << std::string(provider) << std::endl;
-  ROS_INFO_STREAM("Inference device: " << OnnxProviderToString(provider));
+  //   std::cout << "Inference device: " << std::string(provider) << std::endl;
   auto modelPathW = get_win_path(modelPath);
   std::string modelPathStr(modelPathW.begin(), modelPathW.end());
   try
@@ -109,11 +103,11 @@ OnnxModelBase::OnnxModelBase(const char* modelPath,
     session = Ort::Session(env, modelPathStr.c_str(), sessionOptions);
     auto end = std::chrono::high_resolution_clock::now();
     auto dur_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    ROS_INFO_STREAM("Model loaded in " << dur_ms << "ms");
+    std::cout << "Model loaded in " << dur_ms << "ms" << std::endl;
   }
   catch (const std::exception& e)
   {
-    ROS_ERROR_STREAM("Error while loading model: " << e.what());
+    std::cerr << "Error Loading Model: " << e.what() << std::endl;
     throw;
   }
   // session = Ort::Session(env)

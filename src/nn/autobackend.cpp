@@ -14,8 +14,6 @@
 #include "yolov8_onnxruntime/utils/common.h"
 #include "yolov8_onnxruntime/utils/ops.h"
 
-#include <ros/console.h>
-
 namespace yolov8_onnxruntime
 {
 namespace fs = std::filesystem;
@@ -86,12 +84,10 @@ AutoBackendOnnx::AutoBackendOnnx(const char* modelPath,
   {
     // parse it and convert to int iterable
     std::unordered_map<int, std::string> names = parseNames(names_item->second);
-    // std::cout << "***Names from metadata***" << std::endl;
-    ROS_INFO_STREAM("***Names from metadata***");
+    std::cout << "***Names from metadata***" << std::endl;
     for (const auto& pair : names)
     {
-      // std::cout << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
-      ROS_INFO_STREAM("Key: " << pair.first << ", Value: " << pair.second);
+      std::cout << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
     }
     // set it here:
     if (names_.empty())
@@ -193,8 +189,7 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(const fs::path& imagePath
   // Check if the specified path exists
   if (!fs::exists(imagePath))
   {
-    // std::cerr << "Error: File does not exist: " << imagePath << std::endl;
-    ROS_ERROR_STREAM("Error: File does not exist: " << imagePath);
+    std::cerr << "Error: File does not exist: " << imagePath << std::endl;
     // Return an empty vector or throw an exception, depending on your logic
     return {};
   }
@@ -205,8 +200,7 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(const fs::path& imagePath
   // Check if loading the image was successful
   if (image.empty())
   {
-    // std::cerr << "Error: Failed to load image: " << imagePath << std::endl;
-    ROS_ERROR_STREAM("Error: Failed to load image: " << imagePath);
+    std::cerr << "Error: Failed to load image: " << imagePath << std::endl;
     // Return an empty vector or throw an exception, depending on your logic
     return {};
   }
@@ -346,30 +340,16 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image,
   postprocess_timer.Stop();
   if (verbose)
   {
-    // std::cout << std::fixed << std::setprecision(1);
-    // std::cout << "image: " << preprocessed_img.rows << "x" << preprocessed_img.cols << " "
-    //           << results.size() << " objs, ";
-    // std::cout << (preprocess_time + inference_time + postprocess_time) * 1000.0 << "ms"
-    //           << std::endl;
-    // std::cout << "Speed: " << (preprocess_time * 1000.0) << "ms preprocess, ";
-    // std::cout << (inference_time * 1000.0) << "ms inference, ";
-    // std::cout << (postprocess_time * 1000.0) << "ms postprocess per image ";
-    // std::cout << "at shape (1, " << image.channels() << ", " << preprocessed_img.rows << ", "
-    //           << preprocessed_img.cols << ")" << std::endl;
-    // ROS_INFO_STREAM(std::fixed << std::setprecision(1));
-    ROS_INFO_STREAM_THROTTLE(
-        10.0,
-        std::fixed << std::setprecision(1) << "image: " << preprocessed_img.rows << "x"
-                   << preprocessed_img.cols << " " << results.size() << " objs, "
-                   << (preprocess_time + inference_time + postprocess_time) * 1000.0 << "ms");
-
-    ROS_INFO_STREAM_THROTTLE(
-        10.0,
-        std::fixed << std::setprecision(1) << "Speed: " << (preprocess_time * 1000.0)
-                   << "ms preprocess, " << (inference_time * 1000.0) << "ms inference, "
-                   << (postprocess_time * 1000.0) << "ms postprocess per image "
-                   << "at shape (1, " << image.channels() << ", " << preprocessed_img.rows << ", "
-                   << preprocessed_img.cols << ")");
+    std::cout << std::fixed << std::setprecision(1);
+    std::cout << "image: " << preprocessed_img.rows << "x" << preprocessed_img.cols << " "
+              << results.size() << " objs, ";
+    std::cout << (preprocess_time + inference_time + postprocess_time) * 1000.0 << "ms"
+              << std::endl;
+    std::cout << "Speed: " << (preprocess_time * 1000.0) << "ms preprocess, ";
+    std::cout << (inference_time * 1000.0) << "ms inference, ";
+    std::cout << (postprocess_time * 1000.0) << "ms postprocess per image ";
+    std::cout << "at shape (1, " << image.channels() << ", " << preprocessed_img.rows << ", "
+              << preprocessed_img.cols << ")" << std::endl;
   }
 
   return results;

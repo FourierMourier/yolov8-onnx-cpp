@@ -1,6 +1,6 @@
 #ifndef YOLOV8_ONNXRUNTIME_ONNX_MODEL_BASE_H
 #define YOLOV8_ONNXRUNTIME_ONNX_MODEL_BASE_H
-#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#include <onnxruntime_cxx_api.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
