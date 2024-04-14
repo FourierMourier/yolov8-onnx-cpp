@@ -16,3 +16,4 @@ packages.config
 packages/*
 
 build
+.vscode

@@ -6,16 +6,16 @@
 #include <unordered_map>
 #include <vector>
 
-
-class Timer {
+class Timer
+{
 public:
-    Timer(double& accumulator, bool isEnabled = true);
-    void Stop();
+  Timer(double& accumulator, bool isEnabled = true);
+  void Stop();
 
 private:
-    double& accumulator;
-    bool isEnabled;
-    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+  double& accumulator;
+  bool isEnabled;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start;
 };
 
 std::wstring get_win_path(const std::string& path);
