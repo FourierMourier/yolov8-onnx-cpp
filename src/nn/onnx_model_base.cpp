@@ -7,6 +7,8 @@
 #include "constants.h"
 #include "utils/common.h"
 
+#include <algorithm>
+
 
 /**
  * @brief Base class for any onnx model regarding the target.
@@ -33,7 +35,7 @@ OnnxModelBase::OnnxModelBase(const char* modelPath, const char* logid, const cha
     Ort::SessionOptions sessionOptions = Ort::SessionOptions();
 
     std::vector<std::string> availableProviders = Ort::GetAvailableProviders();
-    auto cudaAvailable = std::find(availableProviders.begin(), availableProviders.end(), "CUDAExecutionProvider");
+    auto cudaAvailable = std::find(availableProviders.begin(), availableProviders.end(), std::string("CUDAExecutionProvider"));
     OrtCUDAProviderOptions cudaOption;
 
     if (provider == OnnxProviders::CUDA.c_str()) {  // strcmp(provider, OnnxProviders::CUDA.c_str()) == true strcmp(provider, "cuda") // (providerStr == "cuda")
@@ -56,8 +58,8 @@ OnnxModelBase::OnnxModelBase(const char* modelPath, const char* logid, const cha
     }
 
     std::cout << "Inference device: " << std::string(provider) << std::endl;
-    auto modelPathW = get_win_path(modelPath);
-    session = Ort::Session(env, modelPathW.c_str(), sessionOptions);
+    // std::string modelPathW = get_win_path(modelPath);
+    session = Ort::Session(env, modelPath, sessionOptions);
     //session = Ort::Session(env)
     // https://github.com/microsoft/onnxruntime/issues/14157
     //std::vector<const char*> inputNodeNames; //
