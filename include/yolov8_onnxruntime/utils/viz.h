@@ -3,6 +3,9 @@
 #include <yolov8_onnxruntime/types.h>
 
 #include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <iomanip>
 #include <iostream>
@@ -92,7 +95,7 @@ inline void plot_masks(cv::Mat img,
     top = result[i].bbox.y;
     int color_num = i;
     int& class_idx = result[i].class_idx;
-    rectangle(img, result[i].bbox, color[result[i].class_idx], 2);
+    cv::rectangle(img, result[i].bbox, color[result[i].class_idx], 2);
 
     // try to get string value corresponding to given class_idx
     std::string class_name;

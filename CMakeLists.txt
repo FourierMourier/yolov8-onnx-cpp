@@ -27,3 +27,6 @@ src/utils/ops.cpp
 add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_CPP_SOURCES})
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS} ${ONNXRUNTIME_DIR}/lib/libonnxruntime.so)
+
+add_executable(${PROJECT_NAME}_test src/main.cpp)
+target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME} ${OpenCV_LIBS})

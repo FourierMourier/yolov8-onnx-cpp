@@ -17,3 +17,5 @@ packages/*
 
 build
 .vscode
+images
+models

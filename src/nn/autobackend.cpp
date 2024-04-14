@@ -39,6 +39,13 @@ AutoBackendOnnx::AutoBackendOnnx(const char* modelPath,
                                  const OnnxProviders_t provider) :
     OnnxModelBase(modelPath, logid, provider)
 {
+
+  loadMetaData();
+  prettyPrintMetaData();
+}
+
+void AutoBackendOnnx::loadMetaData()
+{
   // then try to get additional info from metadata like imgsz, stride etc;
   //  ideally you should get all of them but you'll raise error if smth is not in metadata (or not
   //  under the appropriate keys)
@@ -59,6 +66,7 @@ AutoBackendOnnx::AutoBackendOnnx(const char* modelPath,
   else
   {
     std::cerr << "Warning: Cannot get imgsz value from metadata" << std::endl;
+    throw std::runtime_error("Error: Cannot get imgsz value from metadata");
   }
 
   // post init stride
@@ -140,10 +148,31 @@ AutoBackendOnnx::AutoBackendOnnx(const char* modelPath,
   else
   {
     std::cerr << "Warning: Cannot get task value from metadata" << std::endl;
+    throw std::runtime_error("Error: Cannot get task value from metadata");
   }
 
   // TODO: raise assert if imgsz_ and task_ were not initialized (since you don't know in that case
-  // which postprocessing to use)
+  // which postprocessing to use) }
+}
+
+void AutoBackendOnnx::prettyPrintMetaData()
+{
+  std::cout << "***Metadata***" << std::endl;
+  std::cout << "imgsz: ";
+  for (const int& val : imgsz_)
+  {
+    std::cout << val << " ";
+  }
+  std::cout << std::endl;
+  std::cout << "stride: " << stride_ << std::endl;
+  std::cout << "nc: " << nc_ << std::endl;
+  std::cout << "ch: " << ch_ << std::endl;
+  std::cout << "task: " << task_ << std::endl;
+  std::cout << "names: " << std::endl;
+  for (const auto& pair : names_)
+  {
+    std::cout << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
+  }
 }
 
 const std::vector<int>& AutoBackendOnnx::getImgsz() { return imgsz_; }
@@ -283,9 +312,10 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image,
     // get outputs
     float* all_data0 = outputTensors[0].GetTensorMutableData<float>();
 
-    cv::Mat output0 =
-        cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]), CV_32F, all_data0)
-            .t(); // [bs, features, preds_num]=>[bs, preds_num, features]
+    cv::Mat output0 = cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]),
+                              CV_32F,
+                              all_data0)
+                          .t(); // [bs, features, preds_num]=>[bs, preds_num, features]
     auto mask_shape = outputTensor1Shape;
     std::vector<int> mask_sz = {1, (int)mask_shape[1], (int)mask_shape[2], (int)mask_shape[3]};
     cv::Mat output1 = cv::Mat(mask_sz, CV_32F, outputTensors[1].GetTensorMutableData<float>());
@@ -316,9 +346,10 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image,
     std::vector<int64_t> outputTensor0Shape =
         outputTensors[0].GetTensorTypeAndShapeInfo().GetShape();
     float* all_data0 = outputTensors[0].GetTensorMutableData<float>();
-    cv::Mat output0 =
-        cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]), CV_32F, all_data0)
-            .t(); // [bs, features, preds_num]=>[bs, preds_num, features]
+    cv::Mat output0 = cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]),
+                              CV_32F,
+                              all_data0)
+                          .t(); // [bs, features, preds_num]=>[bs, preds_num, features]
     postprocess_detects(output0, img_info, results, class_names_num, conf, iou);
   }
   else if (task_ == YoloTasks::POSE)
@@ -327,9 +358,10 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image,
     std::vector<int64_t> outputTensor0Shape =
         outputTensors[0].GetTensorTypeAndShapeInfo().GetShape();
     float* all_data0 = outputTensors[0].GetTensorMutableData<float>();
-    cv::Mat output0 =
-        cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]), CV_32F, all_data0)
-            .t(); // [bs, features, preds_num]=>[bs, preds_num, features]
+    cv::Mat output0 = cv::Mat(cv::Size((int)outputTensor0Shape[2], (int)outputTensor0Shape[1]),
+                              CV_32F,
+                              all_data0)
+                          .t(); // [bs, features, preds_num]=>[bs, preds_num, features]
     postprocess_kpts(output0, image_info, results, class_names_num, conf, iou);
   }
   else

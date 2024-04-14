@@ -118,6 +118,9 @@ public:
                          int& masks_features_num,
                          bool round_downsampled = false);
 
+  void loadMetaData();
+  void prettyPrintMetaData();
+
 protected:
   std::vector<int> imgsz_;
   int stride_ = OnnxInitializers::UNINITIALIZED_STRIDE;
