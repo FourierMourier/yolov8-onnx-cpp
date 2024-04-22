@@ -56,8 +56,12 @@ OnnxModelBase::OnnxModelBase(const char* modelPath, const char* logid, const cha
     }
 
     std::cout << "Inference device: " << std::string(provider) << std::endl;
-    auto modelPathW = get_win_path(modelPath);
-    session = Ort::Session(env, modelPathW.c_str(), sessionOptions);
+    #ifdef _WIN32
+        auto modelPathW = get_win_path(modelPath);  // For Windows (wstring)
+        session = Ort::Session(env, modelPathW.c_str(), sessionOptions);
+    #else
+        session = Ort::Session(env, modelPath, sessionOptions);  // For Linux (string)
+    #endif
     //session = Ort::Session(env)
     // https://github.com/microsoft/onnxruntime/issues/14157
     //std::vector<const char*> inputNodeNames; //
