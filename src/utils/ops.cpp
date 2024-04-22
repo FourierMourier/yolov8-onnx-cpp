@@ -126,7 +126,7 @@ std::vector<float> scale_coords(const cv::Size& img1_shape, std::vector<float>& 
     }
 
     clip_coords(scaledCoords, img0_shape);
-    return coords;
+    return scaledCoords;
 }
 
 
