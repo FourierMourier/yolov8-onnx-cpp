@@ -3,6 +3,8 @@
 
 ## 2024-04-22
 ### Fixed 🔨
+* Fixed returning not scaled coords for the keypoint task. 
+  [PR#5](https://github.com/FourierMourier/yolov8-onnx-cpp/pull/5), by [@youngday](https://github.com/youngday)
 * Fixed compilation issue on Linux due to the same type `model_path` arg 
   in the `Ort::Session` constructor for both Windows and Linux. 
   [PR#4](https://github.com/FourierMourier/yolov8-onnx-cpp/pull/4), 
