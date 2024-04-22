@@ -1,5 +1,8 @@
 ﻿# yolov8-onnx-cpp
 
+## Changelog
+See the changelog [here](CHANGELOG.md)
+
 ## Description
 Hello there! yolov8-onnx-cpp is a C++ demo implementation of the YOLOv8 model using the ONNX library.
 This project is based on the YOLOv8 model by Ultralytics.
