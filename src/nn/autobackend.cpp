@@ -290,6 +290,7 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image, float& co
         postprocess_kpts(output0, image_info, results, class_names_num, conf, iou);
     }
     else {
+        delete[] blob;
         throw std::runtime_error("NotImplementedError: task: " + task_);
     }
 
@@ -303,6 +304,8 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image, float& co
         std::cout << (postprocess_time * 1000.0) << "ms postprocess per image ";
         std::cout << "at shape (1, " << image.channels() << ", " << preprocessed_img.rows << ", " << preprocessed_img.cols << ")" << std::endl;
     }
+
+    delete[] blob;
 
     return results;
 }
