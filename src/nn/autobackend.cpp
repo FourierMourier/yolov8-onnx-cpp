@@ -252,6 +252,9 @@ std::vector<YoloResults> AutoBackendOnnx::predict_once(cv::Mat& image, float& co
     std::vector<YoloResults> results;
     // 3. postprocess based on task:
     std::unordered_map<int, std::string> names = this->getNames();
+    // 4. cleanup blob since it was created using the "new" keyword during the `fill_blob` func call
+    delete[] blob;
+
     int class_names_num = names.size();
     if (task_ == YoloTasks::SEGMENT) {
 
