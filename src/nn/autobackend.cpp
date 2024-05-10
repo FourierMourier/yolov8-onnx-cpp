@@ -31,7 +31,7 @@ AutoBackendOnnx::AutoBackendOnnx(const char* modelPath, const char* logid, const
 AutoBackendOnnx::AutoBackendOnnx(const char* modelPath, const char* logid, const char* provider)
     : OnnxModelBase(modelPath, logid, provider) {
     // init metadata etc
-    OnnxModelBase(modelPath, logid, provider);
+    // OnnxModelBase(modelPath, logid, provider);
     // then try to get additional info from metadata like imgsz, stride etc;
     //  ideally you should get all of them but you'll raise error if smth is not in metadata (or not under the appropriate keys)
     const std::unordered_map<std::string, std::string>& base_metadata = OnnxModelBase::getMetadata();
